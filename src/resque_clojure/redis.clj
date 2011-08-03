@@ -1,7 +1,10 @@
 (ns resque-clojure.redis
   (:import [redis.clients.jedis Jedis JedisPool]))
 
-(def ^{:private true} *pool* (ref nil))
+;; TODO: rescue from 
+;; redis.clients.jedis.exceptions.JedisConnectionException
+
+(def *pool* (ref nil))
 
 (defn init [config]
   (dosync (ref-set *pool* (JedisPool. (:host config) (:port config)))))
@@ -38,10 +41,12 @@
   (with-connection
     (.lindex redis key index)))
 
-(defn lrange [key i-start i-end]
+;; returns a ArrayList. make it a seq
+(defn lrange [key start end]
   (with-connection
-    (.lrange redis key i-start i-end)))
+    (.lrange redis key (long start) (long end))))
 
+;; returns a HashSet. make it a seq
 (defn smembers [key]
   (with-connection
     (.smembers redis key)))
