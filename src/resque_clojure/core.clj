@@ -1,11 +1,13 @@
 (ns resque-clojure.core
-  :import [redis.clients.jedis Jedis JedisPool])
+  (:require [clojure.contrib.json :as json]
+            [resque-clojure.redis :as redis]))
 
-(def *jedis-pool* (ref nil))
+(defn init []
+  (redis/init {:host "localhost" :port 6379}))
 
-(defn init-pool [config]
-  (dosync (ref-set *jedis-pool* (JedisPool. (:host config) (:port config)))))
+(defn full-queue-name [name]
+  (str "queue:" name))
 
-(defn finalize-pool []
-  (.destroy @*jedis-pool*))
-
+(defn enqueue [queue-name worker-name & args]
+  (redis/rpush (full-queue-name queue-name)
+               (json/json-str {:class worker-name :args args})))
