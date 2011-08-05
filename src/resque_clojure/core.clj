@@ -11,3 +11,5 @@
 (defn enqueue [queue-name worker-name & args]
   (redis/rpush (full-queue-name queue-name)
                (json/json-str {:class worker-name :args args})))
+
+(defn dequeue [queue-name] (str queue-name " has beeen dequeued"))
