@@ -1,71 +1,41 @@
 (ns resque-clojure.redis
-  (:import [redis.clients.jedis Jedis JedisPool]))
+  (:import [redis.clients.jedis Jedis]))
 
 ;; TODO: rescue from 
 ;; redis.clients.jedis.exceptions.JedisConnectionException
 
-(def *pool* (ref nil))
+(defn connect [host port]
+  (Jedis. host port))
 
-(defn init [config]
-  (dosync (ref-set *pool* (JedisPool. (:host config) (:port config)))))
+(defn disconnect [redis]
+  (.disconnect redis))
 
-(defn finalize []
-  (.destroy @*pool*))
+(defn rpush [redis key value]
+  (.rpush redis key value))
 
-(defn- get-connection []
-  (let [connection (.getResource @*pool*)]
-    (.select connection 0)
-    connection))
+(defn lpop [redis key]
+  (.lpop redis key))
 
-(def redis nil)
+(defn llen [redis key]
+  (.llen redis key))
 
-(defmacro with-connection [& body]
-  `(binding [redis (get-connection)]
-     (let [result# ~@body]
-       (.returnResource @*pool* redis)
-       result#)))
+(defn lindex [redis key index]
+  (.lindex redis key (long index)))
 
-(defn rpush [key value]
-  (with-connection
-    (.rpush redis key value)))
+(defn lrange [redis key start end]
+  (seq (.lrange redis key (long start) (long end))))
 
-(defn lpop [key]
-  (with-connection
-    (.lpop redis key)))
+(defn smembers [redis key]
+  (seq (.smembers redis key)))
 
-(defn llen [key]
-  (with-connection
-    (.llen redis key)))
+(defn sadd [redis key value]
+  (.sadd redis key value))
 
-(defn lindex [key index]
-  (with-connection
-    (.lindex redis key (long index))))
-
-;; returns a ArrayList. make it a seq
-(defn lrange [key start end]
-  (with-connection
-    (seq (.lrange redis key (long start) (long end)))))
-
-;; returns a HashSet. make it a seq
-(defn smembers [key]
-  (with-connection
-    (seq (.smembers redis key))))
-
-(defn sadd [key value]
-  (with-connection
-    (.sadd redis key value)))
-
-(defn srem [key value]
-  (with-connection
-    (.srem redis key value)))
+(defn srem [redis key value]
+  (.srem redis key value))
 
 ;; we could extend this to take multiple keys
-(defn del [key]
-  (with-connection
-    (let [args (make-array java.lang.String 1)]
-      (aset args 0 key)
-      (.del redis args))))
-
-(defn inspect []
-  (with-connection
-    redis))
+(defn del [redis key]
+  (let [args (make-array java.lang.String 1)]
+    (aset args 0 key)
+    (.del redis args)))
