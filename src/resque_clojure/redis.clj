@@ -4,11 +4,17 @@
 ;; TODO: rescue from 
 ;; redis.clients.jedis.exceptions.JedisConnectionException
 
-(defn connect [host port]
-  (Jedis. host port))
+(defn connect [{:keys [host port]}]
+  (Jedis. (or host "localhost") (or port 6379)))
 
 (defn disconnect [redis]
   (.disconnect redis))
+
+(defmacro with-connection [name conn-params & body]
+  `(let [~name (connect ~conn-params)]
+     (try
+       ~@body
+       (finally (disconnect ~name)))))
 
 (defn rpush [redis key value]
   (.rpush redis key value))

@@ -3,7 +3,7 @@
         [clojure.test]))
 
 (def test-key "resque-clojure-test")
-(def connection (connect "localhost" 6379))
+(def connection (connect {}))
 
 (use-fixtures :once
               (fn [do-tests]

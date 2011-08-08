@@ -1,31 +1,45 @@
 (ns resque-clojure.core
   (:require [clojure.contrib.json :as json]
-            [resque-clojure.redis :as redis]))
+            [resque-clojure.redis :as redis]
+            [resque-clojure.worker :as worker]))
 
-(defn init []
-  (redis/init {:host "localhost" :port 6379}))
+(declare namespace-key)
+(declare full-queue-name)
+(declare enqueue!)
+(declare enqueue)
+(declare dequeue)
+(declare work-on)
+(declare incoming-listener)
+
+(def redis-agent (agent {}))
+
+(defn namespace-key [key]
+  (str "resque:" key))
 
 (defn full-queue-name [name]
-  (str "queue:" name))
+  (namespace-key (str "queue:" name)))
 
 (defn enqueue [connection queue-name worker-name & args]
-  (send-off *redis-agent* enqueue!
-            connection
-            (full-queue-name queue-name)
-            (json/json-str {:class worker-name :args args})))
-
-(defn enqueue! [status connection queue-name data]
-  {:sent (redis/rpush connection queue-name data)})
+  (redis/rpush connection
+               (full-queue-name queue-name)
+               (json/json-str {:class worker-name :args args})))
 
 (defn dequeue [connection queue-name]
-  (let [data (redis/lpop connection queue-name)]
+  (let [data (redis/lpop connection (full-queue-name queue-name))]
     (if (nil? data)
       {:empty queue-name}
-      {:received data})))
+      {:received (json/read-json data)})))
 
-(defn incoming-listener [key reference old-state new-state]
-  (if (some #{:received} (keys new-state)) ; if received is a key in the map
-    (work-on (:received new-state))))
+(defn worker-complete [key ref old new]
+  (println "worker is done. result: " new))
 
-(defn work-on [job]
-  )
+(defn listen-to [queue-name connection-args]
+  (redis/with-connection c connection-args
+    (let [worker-agent (agent {})]
+      (add-watch worker-agent 'worker-complete worker-complete)
+      (loop []
+        (let [msg (dequeue c queue-name)]
+          (if (:received msg)
+            (send worker-agent worker/work-on (:received msg))))
+        (Thread/sleep 5.0)
+        (recur)))))
