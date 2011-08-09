@@ -10,7 +10,8 @@
                 nil
                 (do-tests)
                 (with-connection c {}
-                  (del c test-key))))
+                  (del c test-key)
+                  (del c "resque:queues"))))
 
 (deftest test-namespace-key
   (is (= "resque:key" (namespace-key "key"))))
@@ -23,6 +24,7 @@
     (del c (full-queue-name test-key))
     (is (= {:empty test-key} (dequeue c test-key)))
     (enqueue c test-key "data")
+    (is (some #{test-key} (smembers c "resque:queues")))
     (is (= {:received {:class "data" :args nil}} (dequeue c test-key)))))
 
 (deftest test-format-error

@@ -23,6 +23,7 @@
   (namespace-key (str "queue:" name)))
 
 (defn enqueue [connection queue worker-name & args]
+  (redis/sadd connection (namespace-key "queues") queue)
   (redis/rpush connection
                (full-queue-name queue)
                (json/json-str {:class worker-name :args args})))
@@ -65,12 +66,10 @@
     (redis/rpush c (namespace-key "failed") (json/json-str (format-error result)))))
 
 ;; TODO:
-;; - send error result to redis
 ;; - register worker with redis
 ;; - set worker status in redis
-;; - when new queue is created add to resque:queues set
 ;; - solicit feedback
 ;;   - carin
 ;;   - mailing list / irc
 ;; - publish to clojars
-  ;; - add resque-status as an option)
+;; - add resque-status as an option

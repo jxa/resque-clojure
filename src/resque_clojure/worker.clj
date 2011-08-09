@@ -11,90 +11,50 @@
       (apply (lookup-fn namespaced-fn) args)
       {:result :pass :job job :queue queue}
       (catch Exception e
-        {:result :error :exception e :job job :queue queue})))
+        {:result :error :exception e :job job :queue queue}))))
+
+;; worker key
+;; pair-one-4.edgecase:51309:scripsafe
+;; redis pair-one-4.edgecase:6379>type resque:workers
+
+;; set
+;; redis pair-one-4.edgecase:6379>smembers resque:workers
+;; 1) "pair-one-4.edgecase:51309:scripsafe"
+;; redis pair-one-4.edgecase:6379>type resque:stat:processed
+;; string
+;; redis pair-one-4.edgecase:6379>get resque:stat:processed
+;; "1"
+;; redis pair-one-4.edgecase:6379>type resque:worker:pair-one-4.edgecase:51309:scripsafe:started
+;; string
+;; redis pair-one-4.edgecase:6379>get resque:worker:pair-one-4.edgecase:51309:scripsafe:started
+;; "Tue Aug 09 16:27:27 -0400 2011"
+;; redis pair-one-4.edgecase:6379>type resque:stat:failed:pair-one-4.edgecase:51309:scripsafe
+;; string
+;; redis pair-one-4.edgecase:6379>get resque:stat:failed:pair-one-4.edgecase:51309:scripsafe
+;; "1"
+;; redis pair-one-4.edgecase:6379>get resque:stat:processed:pair-one-4.edgecase:51309:scripsafe
+;; "1"
+;; redis pair-one-4.edgecase:6379>
+
+
+;; redis pair-one-4.edgecase:6379>keys *
+;;  1) "resque:workers"
+;;  redis> smembers resque:workers
+;;  1) "pair-one-4.edgecase:51309:scripsafe"
+
+(defn worker-name [queues]
+  (let [pid-host (.getName (java.lang.management.ManagementFactory/getRuntimeMXBean))
+        [pid hostname] (split pid-host #"@")
+        qs (apply str (interpose "," queues))]
+    (str hostname ":" pid ":" qs)))
 
 
 
+;;  2) "resque:stat:processed"
+;;  4) "resque:worker:pair-one-4.edgecase:51309:scripsafe:started"
+;;  5) "resque:stat:failed:pair-one-4.edgecase:51309:scripsafe"
+;;  8) "resque:stat:processed:pair-one-4.edgecase:51309:scripsafe"
+;; 10) "resque:stat:failed"
 
-
-
-;; FAILED jobs look like this in resque
-
-;; {
-;;   "failed_at":"2011/08/03 13:23:14",
-;;   "payload":{
-;;     "class":"TranscriptGenerator",
-;;     "args":[
-;;       "30f18730a023012e35185a558dfcff6b",
-;;       {
-;;         "transcript":{
-;;           "student_id":"123-456789",
-;;           "backer":"/home/ecdeploy/apps/scripsafe/preprod/releases/20110803171855/pdf/custom/backers/accounts/229/backer.pdf",
-;;           "student_dob":"",
-;;           "issued_to_student":false,
-;;           "sender":{
-;;             "disable_student_watermark":false,
-;;             "overlay_horizontal_offset":0,
-;;             "address":{
-;;               "city_state_zip":"State College, PA  16801",
-;;               "line_1":"205 Fairfield Drive",
-;;               "line_2":""
-;;             },
-;;             "name":"SCRIP-SAFE Sender",
-;;             "overlay_vertical_offset":0,
-;;             "contact":"SCRIP-SAFE Sender",
-;;             "phone_number":"123-456-7890",
-;;             "overlay_overlays":false,
-;;             "accreditation_name":"Middle States Association of Colleges and Schools (MSA)",
-;;             "catalog_url":"academiccatalog.com/index.php"
-;;           },
-;;           "output_path":"/home/ecdeploy/apps/scripsafe/preprod/releases/20110803171855/pdf/transcripts/completed-transcript-17764.pdf",
-;;           "mailing_page_path":"/home/ecdeploy/apps/scripsafe/preprod/releases/20110803171855/pdf/transcripts/mailing-cover-page-and-documents-transcript-17764.pdf",
-;;           "documents":[
-;;             "/home/ecdeploy/apps/scripsafe/preprod/releases/20110803171855/pdf/documents/000/000/432/432_test_spaces.pdf"
-;;           ],
-;;           "student_email":"",
-;;           "id":17764,
-;;           "type":"Transcript",
-;;           "student_name":"Over the Rainbow",
-;;           "input_path":"/home/ecdeploy/apps/scripsafe/preprod/releases/20110803171855/pdf/transcripts/transcript-17764.pdf",
-;;           "receiver":{
-;;             "address":{
-;;               "city_state_zip":"Cityname, NV  12345",
-;;               "line_1":"Street 1 goes here",
-;;               "line_2":"Street 2 goes here"
-;;             },
-;;             "name":"Undergraduate Admission"
-;;           },
-;;           "watermark":"/home/ecdeploy/apps/scripsafe/preprod/releases/20110803171855/pdf/custom/watermarks/accounts/229/watermark.PNG",
-;;           "print_only":false,
-;;           "document_label":"academic transcript",
-;;           "overlay":null,
-;;           "cover_page":"/tmp/cover-page.pdf.11118.55554"
-;;         }
-;;       }
-;;     ]
-;;   },
-;;   "exception":"PdfMachine::BuildError",
-;;   "error":"No such input file /home/ecdeploy/apps/scripsafe/preprod/releases/20110803171855/pdf/documents/000/000/432/432_test_spaces.pdf",
-;;   "backtrace":[
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/operation/cat.rb:12:in `run!'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/pdf_builder.rb:22:in `run'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/pdf_builder.rb:83:in `visit'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/pdf_builder.rb:81:in `visit'",
-;;     "org/jruby/RubyFixnum.java:256:in `times'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/pdf_builder.rb:80:in `visit'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/pdf_builder.rb:81:in `visit'",
-;;     "org/jruby/RubyFixnum.java:256:in `times'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/pdf_builder.rb:80:in `visit'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/bundler/gems/pdfmachine-6b922b1b6b5f/lib/pdfmachine/pdf_builder.rb:59:in `build!'",
-;;     "./config/../lib/pdf_assembler.rb:19:in `run'",
-;;     "./config/../lib/pdf_assembler.rb:15:in `electronic'",
-;;     "./config/../lib/workers/transcript_generator.rb:17:in `perform'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/gems/resque-status-0.2.3/lib/resque/job_with_status.rb:111:in `safe_perform!'",
-;;     "/home/ecdeploy/apps/scripsafe_transcript_processor/master/shared/bundle/jruby/1.8/gems/resque-status-0.2.3/lib/resque/job_with_status.rb:88:in `perform'"
-;;   ],
-;;   "worker":"ess-PreProd:11118:transcript_processor",
-;;   "queue":"transcript_processor"
-;; }
-)
+;;  7) "resque:status:da488090a4f3012e107e549a20f1acda"
+;;  9) "resque:_statuses"
