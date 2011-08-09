@@ -5,13 +5,13 @@
   (let [[namespace fun] (split namespaced-fn #"/")]
     (ns-resolve (symbol namespace) (symbol fun))))
 
-(defn work-on [state job]
+(defn work-on [state job queue]
   (let [{namespaced-fn :class args :args} job]
     (try
       (apply (lookup-fn namespaced-fn) args)
-      {:result :pass :job job}
+      {:result :pass :job job :queue queue}
       (catch Exception e
-        {:result :error :exception e :job job})))
+        {:result :error :exception e :job job :queue queue})))
 
 
 
