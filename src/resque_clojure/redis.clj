@@ -6,17 +6,22 @@
 (def pool (ref nil))
 (def redis)
 
+(declare release-pool)
+
 (defn configure [c]
   (swap! config merge c))
 
 (defn init-pool []
-  (dosync (ref-set pool (JedisPool. (:host @config) (:port @config)))))
+  (dosync
+   (release-pool)
+   (ref-set pool (JedisPool. (:host @config) (:port @config)))))
 
 (defn- get-connection []
   (.getResource @pool))
 
 (defn release-pool []
-  (.destroy @pool))
+  (if (not (nil? @pool))
+    (.destroy @pool)))
 
 (defmacro with-connection [& body]
   `(binding [redis (get-connection)]
