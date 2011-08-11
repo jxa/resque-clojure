@@ -9,9 +9,9 @@
               (fn [do-tests]
                 nil
                 (do-tests)
-                (with-connection c {}
-                  (del c test-key)
-                  (del c "resque:queues"))))
+                (do
+                  (del test-key)
+                  (del "resque:queues"))))
 
 (deftest test-namespace-key
   (is (= "resque:key" (namespace-key "key"))))
@@ -20,12 +20,11 @@
   (is (= "resque:queue:test" (full-queue-name "test"))))
 
 (deftest test-enqueue-dequeue
-  (with-connection c {}
-    (del c (full-queue-name test-key))
-    (is (= {:empty test-key} (dequeue c test-key)))
-    (enqueue c test-key "data")
-    (is (some #{test-key} (smembers c "resque:queues")))
-    (is (= {:received {:class "data" :args nil}} (dequeue c test-key)))))
+  (del (full-queue-name test-key))
+  (is (= {:empty test-key} (dequeue test-key)))
+  (enqueue test-key "data")
+  (is (some #{test-key} (smembers "resque:queues")))
+  (is (= {:received {:class "data" :args nil}} (dequeue test-key))))
 
 (deftest test-format-error
   (let [e (try (/ 1 0) (catch Exception e e))

@@ -22,14 +22,13 @@
 (defn full-queue-name [name]
   (namespace-key (str "queue:" name)))
 
-(defn enqueue [connection queue worker-name & args]
-  (redis/sadd connection (namespace-key "queues") queue)
-  (redis/rpush connection
-               (full-queue-name queue)
+(defn enqueue [queue worker-name & args]
+  (redis/sadd (namespace-key "queues") queue)
+  (redis/rpush (full-queue-name queue)
                (json/json-str {:class worker-name :args args})))
 
-(defn dequeue [connection queue]
-  (let [data (redis/lpop connection (full-queue-name queue))]
+(defn dequeue [queue]
+  (let [data (redis/lpop (full-queue-name queue))]
     (if (nil? data)
       {:empty queue}
       {:received (json/read-json data)})))
@@ -38,16 +37,15 @@
   (if (= :error (:result new-state))
     (report-error new-state)))
 
-(defn listen-to [queue connection-args]
-  (redis/with-connection c connection-args
-    (let [worker-agent (agent {} :error-handler (fn [a e] (throw e)))]
-      (add-watch worker-agent 'worker-complete worker-complete)
-      (loop []
-        (let [msg (dequeue c queue)]
-          (if (:received msg)
-            (send worker-agent worker/work-on (:received msg) queue)))
-        (Thread/sleep 5.0)
-        (recur)))))
+(defn listen-to [queue]
+  (let [worker-agent (agent {} :error-handler (fn [a e] (throw e)))]
+    (add-watch worker-agent 'worker-complete worker-complete)
+    (loop []
+      (let [msg (dequeue queue)]
+        (if (:received msg)
+          (send worker-agent worker/work-on (:received msg) queue)))
+      (Thread/sleep 5.0)
+      (recur))))
 
 (defn format-error [result]
   (let [exception (:exception result)
@@ -62,8 +60,7 @@
      :queue (:queue result)}))
 
 (defn report-error [result]
-  (redis/with-connection c {}
-    (redis/rpush c (namespace-key "failed") (json/json-str (format-error result)))))
+  (redis/rpush (namespace-key "failed") (json/json-str (format-error result))))
 
 ;; TODO:
 ;; - register worker with redis

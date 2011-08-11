@@ -1,47 +1,63 @@
 (ns resque-clojure.redis
-  (:import [redis.clients.jedis Jedis]))
+  (:import [redis.clients.jedis JedisPool]
+           [redis.clients.jedis.exceptions JedisException]))
 
-;; TODO: rescue from 
-;; redis.clients.jedis.exceptions.JedisConnectionException
+(def config (atom {:host "localhost" :port 6379}))
+(def pool (ref nil))
+(def redis)
 
-(defn connect [{:keys [host port]}]
-  (Jedis. (or host "localhost") (or port 6379)))
+(defn configure [c]
+  (swap! config merge c))
 
-(defn disconnect [redis]
-  (.disconnect redis))
+(defn init-pool []
+  (dosync (ref-set pool (JedisPool. (:host @config) (:port @config)))))
 
-(defmacro with-connection [name conn-params & body]
-  `(let [~name (connect ~conn-params)]
-     (try
-       ~@body
-       (finally (disconnect ~name)))))
+(defn- get-connection []
+  (.getResource @pool))
 
-(defn rpush [redis key value]
+(defn release-pool []
+  (.destroy @pool))
+
+(defmacro with-connection [& body]
+  `(binding [redis (get-connection)]
+     (let [result# ~@body]
+       (.returnResource @pool redis)
+       result#)))
+
+(defmacro defcommand [cmd args & body]
+  (let [inner-args (vec (map gensym args))]
+    `(defn ~cmd ~args
+       (let [fun# (fn ~inner-args (with-connection ~@body))]
+         (try (fun# ~@args)
+              (catch Exception e#
+                (init-pool) (fun# ~@args)))))))
+
+(defcommand rpush [key value]
   (.rpush redis key value))
 
-(defn lpop [redis key]
+(defcommand lpop [key]
   (.lpop redis key))
 
-(defn llen [redis key]
+(defcommand llen [key]
   (.llen redis key))
 
-(defn lindex [redis key index]
+(defcommand lindex [key index]
   (.lindex redis key (long index)))
 
-(defn lrange [redis key start end]
+(defcommand lrange [key start end]
   (seq (.lrange redis key (long start) (long end))))
 
-(defn smembers [redis key]
+(defcommand smembers [key]
   (seq (.smembers redis key)))
 
-(defn sadd [redis key value]
+(defcommand sadd [key value]
   (.sadd redis key value))
 
-(defn srem [redis key value]
+(defcommand srem [key value]
   (.srem redis key value))
 
 ;; we could extend this to take multiple keys
-(defn del [redis key]
+(defcommand del [key]
   (let [args (make-array java.lang.String 1)]
     (aset args 0 key)
     (.del redis args)))
