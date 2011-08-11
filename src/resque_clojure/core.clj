@@ -12,7 +12,8 @@
          work-on
          incoming-listener
          report-error
-         format-error)
+         format-error
+         register)
 
 (def redis-agent (agent {}))
 
@@ -40,12 +41,20 @@
 (defn listen-to [queue]
   (let [worker-agent (agent {} :error-handler (fn [a e] (throw e)))]
     (add-watch worker-agent 'worker-complete worker-complete)
+    (register [queue])
     (loop []
       (let [msg (dequeue queue)]
         (if (:received msg)
           (send worker-agent worker/work-on (:received msg) queue)))
       (Thread/sleep 5.0)
       (recur))))
+
+;; Runtime.getRuntime().addShutdownHook(new Thread() {
+;;     public void run() { /*
+;;        my shutdown code here
+;;     */ }
+;;  });
+
 
 (defn format-error [result]
   (let [exception (:exception result)
@@ -61,3 +70,26 @@
 
 (defn report-error [result]
   (redis/rpush (namespace-key "failed") (json/json-str (format-error result))))
+
+
+(defmulti register class)
+
+(defmethod register java.util.Collection [queues]
+  (let [worker-name (worker/name queues)
+        worker-started-key (str "worker:" worker-name ":started")
+        time (format "%1$ta %1$tb %1$td %1$tk:%1$tM:%1$tS %1$tz %1$tY" (Date.))]
+    (redis/sadd (namespace-key "workers") worker-name)
+    (redis/set (namespace-key worker-started-key) time)))
+
+(defmethod register String [queue] (register (vector queue)))
+
+(defn unregister [queues]
+  (let [worker-name (worker/name queues)
+        keys (redis/keys (str "*" worker-name "*"))
+        workers-set (namespace-key "workers")]
+    (redis/del worker-name)
+    (redis/srem workers-set worker-name)
+    (if (empty? (redis/smembers workers-set))
+      (redis/del workers-set))
+    (doseq [key keys]
+      (redis/del key))))

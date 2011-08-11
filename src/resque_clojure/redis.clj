@@ -30,12 +30,17 @@
        result#)))
 
 (defmacro defcommand [cmd args & body]
-  (let [inner-args (vec (map gensym args))]
-    `(defn ~cmd ~args
-       (let [fun# (fn ~inner-args (with-connection ~@body))]
-         (try (fun# ~@args)
-              (catch Exception e#
-                (init-pool) (fun# ~@args)))))))
+  `(defn ~cmd ~args
+     (let [fun# (fn [] (with-connection ~@body))]
+       (try (fun#)
+            (catch Exception e#
+              (init-pool) (fun#))))))
+
+(defcommand set [key value]
+  (.set redis key value))
+
+(defcommand get [key]
+  (.get redis key))
 
 (defcommand rpush [key value]
   (.rpush redis key value))
@@ -60,6 +65,9 @@
 
 (defcommand srem [key value]
   (.srem redis key value))
+
+(defcommand keys [pattern]
+  (seq (.keys redis pattern)))
 
 ;; we could extend this to take multiple keys
 (defcommand del [key]

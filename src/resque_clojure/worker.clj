@@ -13,7 +13,7 @@
       (catch Exception e
         {:result :error :exception e :job job :queue queue}))))
 
-(defn worker-name [queues]
+(defn name [queues]
   (let [pid-host (.getName (java.lang.management.ManagementFactory/getRuntimeMXBean))
         [pid hostname] (split pid-host #"@")
         qs (apply str (interpose "," queues))]
