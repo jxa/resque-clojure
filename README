@@ -1,6 +1,26 @@
-# resque-clojure
+# resclue
 
-FIXME: write description
+## TODO
+
+* register worker with redis
+* set worker status in redis
+* solicit feedback
+* publish to clojars
+* add resque-status as an option
+
+### WORKER RELATED KEYS -> VALUES
+* type "resque:workers" -> set
+* smembers resque:workers => ("pair-one-4.edgecase:51309:scripsafe")
+* "resque:worker:pair-one-4.edgecase:51309:scripsafe:started" -> "Tue Aug 09 16:27:27 -0400 2011"
+
+### JOB RELATED KEYS -> VALUES
+* "resque:stat:processed" -> 1
+* "resque:stat:processed:pair-one-4.edgecase:51309:scripsafe" -> "1"
+* "resque:stat:failed:pair-one-4.edgecase:51309:scripsafe" -> "1"
+
+### resque-status
+* "resque:status:da488090a4f3012e107e549a20f1acda"
+* "resque:_statuses"
 
 ## Usage
 
@@ -8,6 +28,6 @@ FIXME: write
 
 ## License
 
-Copyright (C) 2011 FIXME
+Copyright (C) 2011 EdgeCase
 
 Distributed under the Eclipse Public License, the same as Clojure.

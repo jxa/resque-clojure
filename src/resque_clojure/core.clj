@@ -61,12 +61,3 @@
 
 (defn report-error [result]
   (redis/rpush (namespace-key "failed") (json/json-str (format-error result))))
-
-;; TODO:
-;; - register worker with redis
-;; - set worker status in redis
-;; - solicit feedback
-;;   - carin
-;;   - mailing list / irc
-;; - publish to clojars
-;; - add resque-status as an option
