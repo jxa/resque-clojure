@@ -31,7 +31,7 @@
         job {:class "clojure.core/slurp" :args ["/etc/passwd"]}
         result {:exception e :job job :queue "test-queue"}
         formatted (format-error result)]
-    (is (re-find #"^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d" (:failed_at formatted)))
+    (is (re-find #"^\d{4}/\d\d/\d\d \d{1,2}:\d\d:\d\d" (:failed_at formatted)))
     (is (= (job (:payload formatted))))
     (is (= "java.lang.ArithmeticException" (:exception formatted)))
     (is (= "Divide by zero" (:error formatted)))
