@@ -17,4 +17,4 @@
   (let [pid-host (.getName (java.lang.management.ManagementFactory/getRuntimeMXBean))
         [pid hostname] (split pid-host #"@")
         qs (apply str (interpose "," queues))]
-    (str hostname ":" pid ":" qs)))
+    (str hostname ".clj:" pid ":" qs)))

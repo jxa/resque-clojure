@@ -15,7 +15,11 @@
          format-error
          register)
 
-(def redis-agent (agent {}))
+(def run-loop? (ref true))
+(def working-agents (ref {}))
+(def idle-agents (ref {}))
+(def queues (ref []))
+(def max-wait (10*1000)) ;; milliseconds
 
 (defn namespace-key [key]
   (str "resque:" key))
@@ -39,8 +43,7 @@
     (report-error new-state)))
 
 (defn listen-to [queue]
-  (let [worker-agent (agent {} :error-handler (fn [a e] (throw e)))]
-    (add-watch worker-agent 'worker-complete worker-complete)
+  (let [worker-agent (make-agent)]
     (register [queue])
     (loop []
       (let [msg (dequeue queue)]
@@ -48,6 +51,40 @@
           (send worker-agent worker/work-on (:received msg) queue)))
       (Thread/sleep 5.0)
       (recur))))
+
+;; aaaaaaaaaaaaaaaaaaaaaaaaaaarrrrrrrrrrrrrrrrrrrrgh
+;; (defn listen []
+;;   (if @run-loop
+;;     (let [worker-agent (reserve-worker)]
+;;       (if worker-agent
+;;         (let [msg (dequeue (first queues))]
+;;           (if (:received msg)
+;;             (send worker-agent worker/work-on (:received msg) (first queues)))
+;;           (release-worker worker-agent)))))
+;;   )
+
+(defn make-agent []
+  (let [worker-agent (agent {} :error-handler (fn [a e] (throw e)))]
+    (add-watch worker-agent 'worker-complete worker-complete)
+    (dosync (commute idle-agents conj worker-agent))))
+
+(defn shutdown []
+  (dosync (ref-set run-loop? false))
+  (await-for max-wait worker-agents))
+
+(defn reserve-worker []
+  "either returns an idle worker or nil.
+   marks the returned worker as working."
+  
+  (dosync (let [selected (first @idle-agents)
+                idle (rest @idle-agents)]
+            (if selected
+              (alter working-agents conj selected)
+              (ref-set idle-agents idle))
+            selected)))
+
+(defn release-worker [worker]
+  )
 
 ;; Runtime.getRuntime().addShutdownHook(new Thread() {
 ;;     public void run() { /*
