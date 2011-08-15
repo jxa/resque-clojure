@@ -13,13 +13,22 @@
          incoming-listener
          report-error
          format-error
-         register)
+         register
+         make-agent
+         delete-worker
+         listen-loop
+         reserve-worker
+         release-worker)
 
 (def run-loop? (ref true))
-(def working-agents (ref {}))
-(def idle-agents (ref {}))
-(def queues (ref []))
-(def max-wait (10*1000)) ;; milliseconds
+(def working-agents (ref #{}))
+(def idle-agents (ref #{}))
+(def queues (atom []))
+
+(def max-wait (* 10 1000)) ;; milliseconds
+(def sleep-interval 5.0)   ;; seconds
+
+(def tmp (atom []))
 
 (defn namespace-key [key]
   (str "resque:" key))
@@ -39,52 +48,63 @@
       {:received (json/read-json data)})))
 
 (defn worker-complete [key ref old-state new-state]
+  (swap! tmp conj (str "worker complete: " ref new-state))
+  (release-worker ref)
   (if (= :error (:result new-state))
     (report-error new-state)))
 
-(defn listen-to [queue]
-  (let [worker-agent (make-agent)]
-    (register [queue])
-    (loop []
-      (let [msg (dequeue queue)]
+(defn dispatch-jobs []
+  (let [worker-agent (reserve-worker)]
+    (println "let: " worker-agent)
+    (if worker-agent
+      (let [msg (dequeue (first @queues))]
+        (println "let2: " msg)
         (if (:received msg)
-          (send worker-agent worker/work-on (:received msg) queue)))
-      (Thread/sleep 5.0)
-      (recur))))
+          (send-off worker-agent worker/work-on (:received msg) (first @queues))
+          (release-worker worker-agent))))))
 
-;; aaaaaaaaaaaaaaaaaaaaaaaaaaarrrrrrrrrrrrrrrrrrrrgh
-;; (defn listen []
-;;   (if @run-loop
-;;     (let [worker-agent (reserve-worker)]
-;;       (if worker-agent
-;;         (let [msg (dequeue (first queues))]
-;;           (if (:received msg)
-;;             (send worker-agent worker/work-on (:received msg) (first queues)))
-;;           (release-worker worker-agent)))))
-;;   )
+(defn start []
+  (dosync (ref-set run-loop? true))
+  (.start (Thread. listen-loop)))
+
+(defn listen-loop []
+  (if @run-loop?
+    (do
+      (dispatch-jobs)
+      (Thread/sleep sleep-interval)
+      (recur))))
 
 (defn make-agent []
   (let [worker-agent (agent {} :error-handler (fn [a e] (throw e)))]
     (add-watch worker-agent 'worker-complete worker-complete)
-    (dosync (commute idle-agents conj worker-agent))))
+    (add-watch worker-agent 'bs (fn [k r o n] (println "got something: " n)))
+    (dosync (commute idle-agents conj worker-agent))
+    worker-agent))
 
-(defn shutdown []
+(defn stop []
   (dosync (ref-set run-loop? false))
-  (await-for max-wait worker-agents))
+  (await-for max-wait @working-agents))
 
 (defn reserve-worker []
   "either returns an idle worker or nil.
    marks the returned worker as working."
   
-  (dosync (let [selected (first @idle-agents)
-                idle (rest @idle-agents)]
-            (if selected
-              (alter working-agents conj selected)
-              (ref-set idle-agents idle))
-            selected)))
+  (dosync
+   (let [selected (first @idle-agents)]
+     (if selected
+       (do
+         (alter idle-agents disj selected)
+         (alter working-agents conj selected)))
+     selected)))
 
-(defn release-worker [worker]
-  )
+(defn release-worker [w]
+  (dosync (alter working-agents disj w)
+          (alter idle-agents conj w)))
+
+
+(defn listen-to [queue]
+  (register queue)
+  (swap! queues conj queue))
 
 ;; Runtime.getRuntime().addShutdownHook(new Thread() {
 ;;     public void run() { /*
