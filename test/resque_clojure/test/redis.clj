@@ -1,6 +1,6 @@
 (ns resque-clojure.test.redis
-  (:use [resque-clojure.redis]
-        [clojure.test]))
+  (:require [resque-clojure.redis :as redis])
+  (:use [clojure.test]))
 
 (def test-key "resque-clojure-test")
 
@@ -8,46 +8,57 @@
               (fn [do-tests]
                 nil
                 (do-tests)
-                (del test-key)))
+                (redis/del test-key)))
+
+(defn includes? [coll e]
+  (some #{e} coll))
+
+(deftest set-and-get
+  (redis/set test-key "setvalue")
+  (is (= "setvalue" (redis/get test-key))))
 
 (deftest list-ops-rpush-and-lpop
-  (rpush test-key "value")
-  (is (= "value" (lpop test-key)))
-  (is (= nil (lpop test-key))))
+  (redis/rpush test-key "value")
+  (is (= "value" (redis/lpop test-key)))
+  (is (= nil (redis/lpop test-key))))
   
 (deftest list-ops-llen
-  (is (= 0 (llen test-key)))
-  (rpush test-key "value")
-  (is (= 1 (llen test-key))))
+  (is (= 0 (redis/llen test-key)))
+  (redis/rpush test-key "value")
+  (is (= 1 (redis/llen test-key))))
 
 (deftest list-ops-lindex
-  (is (nil? (lindex test-key 0)))
-  (rpush test-key "value0")
-  (rpush test-key "value1")
-  (is (= "value0" (lindex test-key 0)))
-  (is (= "value1" (lindex test-key 1))))
+  (is (nil? (redis/lindex test-key 0)))
+  (redis/rpush test-key "value0")
+  (redis/rpush test-key "value1")
+  (is (= "value0" (redis/lindex test-key 0)))
+  (is (= "value1" (redis/lindex test-key 1))))
 
 (deftest list-ops-lrange
-  (is (empty? (lrange test-key 0 3)))
-  (rpush test-key "value0")
-  (rpush test-key "value1")
-  (is (= '("value0") (lrange test-key 0 0)))
-  (is (= '("value0" "value1") (lrange test-key 0 1))))
+  (is (empty? (redis/lrange test-key 0 3)))
+  (redis/rpush test-key "value0")
+  (redis/rpush test-key "value1")
+  (is (= '("value0") (redis/lrange test-key 0 0)))
+  (is (= '("value0" "value1") (redis/lrange test-key 0 1))))
 
 (deftest set-ops-sadd
-  (is (empty? (smembers test-key)))
-  (sadd test-key "element0")
-  (is ( not (empty? (smembers test-key)))))
+  (is (empty? (redis/smembers test-key)))
+  (redis/sadd test-key "element0")
+  (is (not (empty? (redis/smembers test-key)))))
 
 (deftest set-ops-rem
-  (sadd test-key "element0")
-  (is ( not (empty? (smembers test-key))))
-  (srem test-key "element0")
-  (is (empty? (smembers test-key))))
+  (redis/sadd test-key "element0")
+  (is (not (empty? (redis/smembers test-key))))
+  (redis/srem test-key "element0")
+  (is (empty? (redis/smembers test-key))))
 
 (deftest set-ops-smembers
-  (sadd test-key "element0")
-  (sadd test-key "element1")
-  (is (some #{"element0"} (smembers test-key)))
-  (is (some #{"element1"} (smembers test-key)))
-  (is (nil? (some #{"element2"} (smembers test-key)))))
+  (redis/sadd test-key "element0")
+  (redis/sadd test-key "element1")
+  (is (includes? (redis/smembers test-key) "element0"))
+  (is (includes? (redis/smembers test-key) "element1"))
+  (is (not (includes? (redis/smembers test-key) "element2"))))
+
+(deftest test-keys
+  (redis/set test-key "asdf")
+  (is (includes? (redis/keys test-key) test-key)))

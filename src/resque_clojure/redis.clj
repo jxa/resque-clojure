@@ -1,4 +1,5 @@
 (ns resque-clojure.redis
+  (:refer-clojure :exclude [set get keys])
   (:import [redis.clients.jedis JedisPool]
            [redis.clients.jedis.exceptions JedisException]))
 
