@@ -26,9 +26,7 @@
 (def queues (atom []))
 
 (def max-wait (* 10 1000)) ;; milliseconds
-(def sleep-interval 5.0)   ;; seconds
-
-(def tmp (atom []))
+(def sleep-interval (* 5 1000))
 
 (defn namespace-key [key]
   (str "resque:" key))
@@ -48,17 +46,14 @@
       {:received (json/read-json data)})))
 
 (defn worker-complete [key ref old-state new-state]
-  (swap! tmp conj (str "worker complete: " ref new-state))
   (release-worker ref)
   (if (= :error (:result new-state))
     (report-error new-state)))
 
 (defn dispatch-jobs []
   (let [worker-agent (reserve-worker)]
-    (println "let: " worker-agent)
     (if worker-agent
       (let [msg (dequeue (first @queues))]
-        (println "let2: " msg)
         (if (:received msg)
           (send-off worker-agent worker/work-on (:received msg) (first @queues))
           (release-worker worker-agent))))))
