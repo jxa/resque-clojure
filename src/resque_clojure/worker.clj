@@ -1,4 +1,5 @@
 (ns resque-clojure.worker
+  (refer-clojure :except [name])
   (:use [clojure.string :only [split]]))
 
 (defn lookup-fn [namespaced-fn]
@@ -7,6 +8,7 @@
 
 (defn work-on [state job queue]
   (let [{namespaced-fn :class args :args} job]
+    (println "fn: " namespaced-fn "args: " args)
     (try
       (apply (lookup-fn namespaced-fn) args)
       {:result :pass :job job :queue queue}
