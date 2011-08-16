@@ -1,9 +1,11 @@
 (ns resque-clojure.test.core
+  (:refer-clojure :except [keys])
   (:use [resque-clojure.core])
   (:use [clojure.test])
   (:use [resque-clojure.redis]))
 
 (def test-key "resque-clojure-test")
+(def test-key-2 "resque-clojure-test-2")
 
 (use-fixtures :each
               (fn [do-tests]
@@ -11,6 +13,7 @@
                 (do-tests)
                 (do
                   (del test-key)
+                  (del test-key-2)
                   (del "resque:queues"))))
 
 (deftest test-namespace-key
@@ -21,10 +24,17 @@
 
 (deftest test-enqueue-dequeue
   (del (full-queue-name test-key))
-  (is (= {:empty test-key} (dequeue test-key)))
+  (is (nil? (dequeue [test-key])))
   (enqueue test-key "data")
   (is (some #{test-key} (smembers "resque:queues")))
-  (is (= {:received {:class "data" :args nil}} (dequeue test-key))))
+  (is (= {:queue test-key :data {:class "data" :args nil}} (dequeue [test-key]))))
+
+(deftest test-multiple-queues-pop-only-one
+  (enqueue test-key "data")
+  (enqueue test-key-2 "data2")
+  (is (not (nil? (dequeue [test-key test-key-2]))))
+  (is (or (not (= 0 (llen test-key)))
+          (not (= 0 (llen test-key-2))))))
 
 (deftest test-format-error
   (let [e (try (/ 1 0) (catch Exception e e))

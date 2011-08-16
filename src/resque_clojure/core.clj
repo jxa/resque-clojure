@@ -17,13 +17,14 @@
          make-agent
          delete-worker
          listen-loop
+         listen-to
          reserve-worker
          release-worker)
 
 (def run-loop? (ref true))
 (def working-agents (ref #{}))
 (def idle-agents (ref #{}))
-(def queues (atom []))
+(def watched-queues (atom []))
 
 (def max-wait (* 10 1000)) ;; milliseconds
 (def sleep-interval (* 5 1000))
@@ -39,11 +40,19 @@
   (redis/rpush (full-queue-name queue)
                (json/json-str {:class worker-name :args args})))
 
-(defn dequeue [queue]
-  (let [data (redis/lpop (full-queue-name queue))]
-    (if (nil? data)
-      {:empty queue}
-      {:received (json/read-json data)})))
+(defn dequeue-randomized [queues]
+  "Randomizes the list of queues. Then returns the first queue that contains a job"
+  (first
+   (filter #(:data %)
+           (map (fn [q] {:queue q :data (redis/lpop (full-queue-name q))})
+                (shuffle queues)))))
+
+(defn dequeue [queues]
+  "Randomizes the list of queues. Then returns the first queue that contains a job.
+Returns a hash of: {:queue \"queue-name\" :data {...}} or nil"
+  (let [msg (dequeue-randomized queues)]
+    (if (not (nil? msg))
+      (assoc msg :data (json/read-json (:data msg))))))
 
 (defn worker-complete [key ref old-state new-state]
   (release-worker ref)
@@ -53,14 +62,19 @@
 (defn dispatch-jobs []
   (let [worker-agent (reserve-worker)]
     (if worker-agent
-      (let [msg (dequeue (first @queues))]
-        (if (:received msg)
-          (send-off worker-agent worker/work-on (:received msg) (first @queues))
+      (let [msg (dequeue @watched-queues)]
+        (if (msg)
+          (send-off worker-agent worker/work-on (:data msg) (:queue msg))
           (release-worker worker-agent))))))
 
-(defn start []
-  (dosync (ref-set run-loop? true))
-  (.start (Thread. listen-loop)))
+(defn start
+  "start listening for jobs on queues (vector)."
+  ([queues] (start queues 1))
+  ([queues num-workers]
+     (dotimes [n num-workers] (make-agent))
+     (listen-to queues)
+     (dosync (ref-set run-loop? true))
+     (.start (Thread. listen-loop))))
 
 (defn listen-loop []
   (if @run-loop?
@@ -77,6 +91,7 @@
     worker-agent))
 
 (defn stop []
+  "stops polling queues. waits for all workers to complete current job"
   (dosync (ref-set run-loop? false))
   (await-for max-wait @working-agents))
 
@@ -96,10 +111,9 @@
   (dosync (alter working-agents disj w)
           (alter idle-agents conj w)))
 
-
-(defn listen-to [queue]
-  (register queue)
-  (swap! queues conj queue))
+(defn listen-to [queues]
+  (register queues)
+  (swap! watched-queues into queues))
 
 ;; Runtime.getRuntime().addShutdownHook(new Thread() {
 ;;     public void run() { /*
@@ -123,17 +137,12 @@
 (defn report-error [result]
   (redis/rpush (namespace-key "failed") (json/json-str (format-error result))))
 
-
-(defmulti register class)
-
-(defmethod register java.util.Collection [queues]
+(defn register [queues]
   (let [worker-name (worker/name queues)
         worker-started-key (str "worker:" worker-name ":started")
         time (format "%1$ta %1$tb %1$td %1$tk:%1$tM:%1$tS %1$tz %1$tY" (Date.))]
     (redis/sadd (namespace-key "workers") worker-name)
     (redis/set (namespace-key worker-started-key) time)))
-
-(defmethod register String [queue] (register (vector queue)))
 
 (defn unregister [queues]
   (let [worker-name (worker/name queues)
