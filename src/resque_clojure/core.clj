@@ -42,10 +42,14 @@
 
 (defn dequeue-randomized [queues]
   "Randomizes the list of queues. Then returns the first queue that contains a job"
-  (first
-   (filter #(:data %)
-           (map (fn [q] {:queue q :data (redis/lpop (full-queue-name q))})
-                (shuffle queues)))))
+  (loop [qs (shuffle queues)]
+    (let [q (first qs)
+          nsq (full-queue-name q)
+          job (redis/lpop nsq)]
+      (cond
+       (empty? qs) nil
+       job {:queue q :data job}
+       :else (recur (rest qs))))))
 
 (defn dequeue [queues]
   "Randomizes the list of queues. Then returns the first queue that contains a job.
@@ -60,12 +64,11 @@ Returns a hash of: {:queue \"queue-name\" :data {...}} or nil"
     (report-error new-state)))
 
 (defn dispatch-jobs []
-  (let [worker-agent (reserve-worker)]
-    (if worker-agent
-      (let [msg (dequeue @watched-queues)]
-        (if (msg)
-          (send-off worker-agent worker/work-on (:data msg) (:queue msg))
-          (release-worker worker-agent))))))
+  (when-let [worker-agent (reserve-worker)]
+    (let [msg (dequeue @watched-queues)]
+      (if (msg)
+        (send-off worker-agent worker/work-on (:data msg) (:queue msg))
+        (release-worker worker-agent)))))
 
 (defn start
   "start listening for jobs on queues (vector)."

@@ -6,6 +6,7 @@
 
 (def test-key "resque-clojure-test")
 (def test-key-2 "resque-clojure-test-2")
+(defn full-q [q] (str "resque:queue:" q))
 
 (use-fixtures :each
               (fn [do-tests]
@@ -14,6 +15,8 @@
                 (do
                   (del test-key)
                   (del test-key-2)
+                  (del (full-q test-key))
+                  (del (full-q test-key-2))
                   (del "resque:queues"))))
 
 (deftest test-namespace-key
@@ -33,8 +36,8 @@
   (enqueue test-key "data")
   (enqueue test-key-2 "data2")
   (is (not (nil? (dequeue [test-key test-key-2]))))
-  (is (or (not (= 0 (llen test-key)))
-          (not (= 0 (llen test-key-2))))))
+  (is (or (and (= 1 (llen (full-q test-key))) (= 0 (llen (full-q test-key-2))))
+          (and (= 0 (llen (full-q test-key))) (= 1 (llen (full-q test-key-2)))))))
 
 (deftest test-format-error
   (let [e (try (/ 1 0) (catch Exception e e))
