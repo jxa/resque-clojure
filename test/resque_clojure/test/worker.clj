@@ -1,4 +1,5 @@
 (ns resque-clojure.test.worker
+  (:refer-clojure :exclude [name])
   (:use [resque-clojure.worker]
         [clojure.test]))
 

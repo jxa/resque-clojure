@@ -1,14 +1,11 @@
 (ns resque-clojure.test.redis
-  (:require [resque-clojure.redis :as redis])
+  (:require [resque-clojure.redis :as redis]
+            [resque-clojure.test.helper :as helper])
   (:use [clojure.test]))
 
 (def test-key "resque-clojure-test")
-
-(use-fixtures :each
-              (fn [do-tests]
-                nil
-                (do-tests)
-                (redis/del test-key)))
+(use-fixtures :once helper/redis-test-instance)
+(use-fixtures :each helper/cleanup-redis-keys)
 
 (defn includes? [coll e]
   (some #{e} coll))

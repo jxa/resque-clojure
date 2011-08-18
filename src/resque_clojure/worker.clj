@@ -1,5 +1,5 @@
 (ns resque-clojure.worker
-  (refer-clojure :except [name])
+  (:refer-clojure :exclude [name])
   (:use [clojure.string :only [split]]))
 
 (defn lookup-fn [namespaced-fn]
