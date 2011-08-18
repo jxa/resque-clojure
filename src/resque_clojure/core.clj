@@ -5,6 +5,7 @@
             [resque-clojure.worker :as worker]))
 
 (declare namespace-key
+         dispatch-jobs
          full-queue-name
          enqueue!
          enqueue
@@ -60,13 +61,14 @@ Returns a hash of: {:queue \"queue-name\" :data {...}} or nil"
 
 (defn worker-complete [key ref old-state new-state]
   (release-worker ref)
+  (dispatch-jobs)
   (if (= :error (:result new-state))
     (report-error new-state)))
 
 (defn dispatch-jobs []
   (when-let [worker-agent (reserve-worker)]
     (let [msg (dequeue @watched-queues)]
-      (if (msg)
+      (if msg
         (send-off worker-agent worker/work-on (:data msg) (:queue msg))
         (release-worker worker-agent)))))
 
@@ -89,14 +91,13 @@ Returns a hash of: {:queue \"queue-name\" :data {...}} or nil"
 (defn make-agent []
   (let [worker-agent (agent {} :error-handler (fn [a e] (throw e)))]
     (add-watch worker-agent 'worker-complete worker-complete)
-    (add-watch worker-agent 'bs (fn [k r o n] (println "got something: " n)))
     (dosync (commute idle-agents conj worker-agent))
     worker-agent))
 
 (defn stop []
   "stops polling queues. waits for all workers to complete current job"
   (dosync (ref-set run-loop? false))
-  (await-for max-wait @working-agents))
+  (apply await-for max-wait @working-agents))
 
 (defn reserve-worker []
   "either returns an idle worker or nil.
