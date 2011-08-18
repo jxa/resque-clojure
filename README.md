@@ -26,8 +26,6 @@ fully interoperable with the original project.
 * add resque:stat:* keys
 * add resque-status as an option/plugin
 
-## License
+# License
 
-Copyright (C) 2011 EdgeCase
-
-Distributed under the Eclipse Public License, the same as Clojure.
+Released under the MIT license. Please see LICENSE file.
