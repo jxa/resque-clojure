@@ -11,8 +11,8 @@ fully interoperable with the original project.
 
     (ns my.test
       (:require [resque-clojure.core :as resque]))
-    
-    (resque/configure {:host "localhost" :port 6379})
+   
+    (resque/configure {:host "localhost" :port 6379}) ;; optional
     
     ;; creating a job
     (resque/enqueue "testqueue" "clojure.core/println" "hello" "resque")

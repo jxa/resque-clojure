@@ -19,7 +19,7 @@
   (is (nil? (dequeue [test-key])))
   (enqueue test-key "data")
   (is (some #{test-key} (redis/smembers "resque:queues")))
-  (is (= {:queue test-key :data {:class "data" :args nil}} (dequeue [test-key]))))
+  (is (= {:queue test-key :data "{\"class\":\"data\",\"args\":null}" :func "data" :args nil} (dequeue [test-key]))))
 
 (deftest test-multiple-queues-pop-only-one
   (let [test-key-2 "test-key-2"]

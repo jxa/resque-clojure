@@ -38,7 +38,7 @@
   (when-let [worker-agent (reserve-worker)]
     (let [msg (resque/dequeue @watched-queues)]
       (if msg
-        (send-off worker-agent worker/work-on (:data msg) (:queue msg))
+        (send-off worker-agent worker/work-on msg)
         (release-worker worker-agent)))))
 
 (defn listen-loop []

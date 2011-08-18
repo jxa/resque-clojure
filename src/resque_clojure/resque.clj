@@ -21,10 +21,11 @@
 
 (defn dequeue [queues]
   "Randomizes the list of queues. Then returns the first queue that contains a job.
-Returns a hash of: {:queue \"queue-name\" :data {...}} or nil"
+   Returns a hash of: {:queue \"queue-name\" :data {...}} or nil"
   (let [msg (-dequeue-randomized queues)]
-    (if (not (nil? msg))
-      (assoc msg :data (json/read-json (:data msg))))))
+    (if msg
+      (let [{:keys [class args]} (json/read-json (:data msg))]
+        (assoc msg :func class :args args)))))
 
 (defn report-error [result]
   (redis/rpush (-namespace-key "failed") (json/json-str (-format-error result))))
