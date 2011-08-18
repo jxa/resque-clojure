@@ -14,7 +14,7 @@
   (reset! our-list [])
   (resque/enqueue "test-queue" "resque-clojure.test.integration/add-to-list" "one" 2 3)
   (resque/start ["test-queue"])
-  (Thread/sleep 1)
+  (Thread/sleep 50)
   (resque/stop)
   (is (= ["one" 2 3] @our-list)))
 

@@ -1,7 +1,8 @@
 (ns resque-clojure.test.helper
   (:use [clojure.contrib.shell-out :only [sh]])
   (:require [clojure.string :as string]
-            [resque-clojure.redis :as redis]))
+            [resque-clojure.redis :as redis]
+            [resque-clojure.core :as core]))
 
 (def config {'pidfile "/tmp/resque-clojure-redis.pid"
              'daemonize "yes"
@@ -18,7 +19,7 @@
   (sh "redis-cli" "-p" (config 'port) "shutdown"))
 
 (defn config-redis []
-  (redis/configure {:port (Integer/parseInt (config 'port))}))
+  (core/configure {:port (Integer/parseInt (config 'port)) :host "localhost" :max-workers 1}))
 
 (defn redis-test-instance [tests]
   (start-redis)
