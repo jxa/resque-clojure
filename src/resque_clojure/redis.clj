@@ -75,3 +75,6 @@
   (let [args (make-array java.lang.String 1)]
     (aset args 0 key)
     (.del redis args)))
+
+(defcommand flushdb []
+  (.flushDB redis))

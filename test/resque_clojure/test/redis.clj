@@ -57,3 +57,8 @@
 (deftest test-keys
   (redis/set test-key "asdf")
   (is (includes? (redis/keys test-key) test-key)))
+
+(deftest test-flush
+  (redis/set test-key "asdf")
+  (redis/flushdb)
+  (is (empty? (redis/keys "*"))))

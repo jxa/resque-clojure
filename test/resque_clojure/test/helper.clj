@@ -29,6 +29,5 @@
     (finally (stop-redis))))
 
 (defn cleanup-redis-keys [tests]
-  (doseq [key (redis/keys "*")]
-    (redis/del key))
+  (redis/flushdb)
   (tests))
