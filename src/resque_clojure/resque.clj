@@ -1,7 +1,7 @@
 (ns resque-clojure.resque
   (:import [java.util Date])
   (:require [resque-clojure.redis :as redis]
-            [clojure.contrib.json :as json]
+            [clojure.data.json :as json]
             [resque-clojure.worker :as worker]))
 
 ;; private api

@@ -1,5 +1,5 @@
 (ns resque-clojure.test.helper
-  (:use [clojure.contrib.shell-out :only [sh]])
+  (:use [clojure.java.shell :only [sh]])
   (:require [clojure.string :as string]
             [resque-clojure.redis :as redis]
             [resque-clojure.core :as core]))

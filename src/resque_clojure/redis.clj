@@ -5,7 +5,7 @@
 
 (def config (atom {:host "localhost" :port 6379}))
 (def pool (ref nil))
-(def redis)
+(def ^:dynamic redis)
 
 (declare release-pool)
 
