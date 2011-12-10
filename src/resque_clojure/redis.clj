@@ -15,7 +15,9 @@
 (defn init-pool []
   (dosync
    (release-pool)
-   (ref-set pool (JedisPool. (:host @config) (:port @config)))))
+   (let [{:keys [host port]} @config
+         port (if (string? port) (Integer/parseInt port) port)]
+     (ref-set pool (JedisPool. host port)))))
 
 (defn- get-connection []
   (.getResource @pool))
