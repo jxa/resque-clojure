@@ -3,7 +3,4 @@
   :url "https://github.com/jxa/resque-clojure"
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [org.clojure/data.json "0.1.2"]
-                 [redis.clients/jedis "1.5.2"]]
-
-  :repositories {"nfr-releases" "s3p://newfound-mvn-repo/releases/"
-                 "nfr-snapshots" "s3p://newfound-mvn-repo/snapshots/"})
+                 [redis.clients/jedis "1.5.2"]])
