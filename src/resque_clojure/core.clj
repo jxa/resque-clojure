@@ -9,6 +9,8 @@
   "set configuration parameters. Available keys:
      :host
      :port
+     :timeout
+     :password
      :max-shutdown-wait
      :poll-interval
      :max-workers"
@@ -18,6 +20,7 @@
         super-map (filter-map c super-keys)]
     (redis/configure redis-map)
     (supervisor/configure super-map)))
+
 
 (defn enqueue [queue worker-name & args]
   "create a new resque job
@@ -33,5 +36,3 @@
 (defn stop []
   "stops polling queues. waits for all workers to complete current job"
   (supervisor/stop))
-
-

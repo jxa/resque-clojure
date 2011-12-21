@@ -80,4 +80,3 @@
        (empty? qs) nil
        job {:queue q :data job}
        :else (recur (rest qs))))))
-
