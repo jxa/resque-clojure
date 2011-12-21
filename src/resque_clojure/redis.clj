@@ -16,7 +16,6 @@
 (defn init-pool []
   (dosync
    (release-pool)
-   (println "init-pool being called")
    (let [{:keys [host port timeout password]} @config
          port (if (string? port) (Integer/parseInt port) port)
          timeout (if (string? timeout) (Integer/parseInt timeout) timeout)
