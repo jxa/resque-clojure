@@ -1,9 +1,10 @@
 (ns resque-clojure.redis
   (:refer-clojure :exclude [set get keys])
   (:import [redis.clients.jedis JedisPool]
-           [redis.clients.jedis.exceptions JedisException]))
+           [redis.clients.jedis.exceptions JedisException]
+           [org.apache.commons.pool.impl GenericObjectPool$Config]))
 
-(def config (atom {:host "localhost" :port 6379}))
+(def config (atom {:host "localhost" :port 6379 :timeout 2000 :password nil}))
 (def pool (ref nil))
 (def ^:dynamic redis)
 
@@ -12,12 +13,18 @@
 (defn configure [c]
   (swap! config merge c))
 
+(defn- make-int [i]
+  (if (string? i) (Integer/parseInt i) i))
+
 (defn init-pool []
   (dosync
    (release-pool)
-   (let [{:keys [host port]} @config
-         port (if (string? port) (Integer/parseInt port) port)]
-     (ref-set pool (JedisPool. host port)))))
+   (let [{:keys [host port timeout password]} @config
+         port (make-int port)
+         timeout (make-int timeout)]
+     (if (nil? password)
+       (ref-set pool (JedisPool. (GenericObjectPool$Config.) host port timeout))
+       (ref-set pool (JedisPool. (GenericObjectPool$Config.) host port timeout password))))))
 
 (defn- get-connection []
   (.getResource @pool))
