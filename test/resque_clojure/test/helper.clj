@@ -4,22 +4,23 @@
             [resque-clojure.redis :as redis]
             [resque-clojure.core :as core]))
 
-(def config {'pidfile "/tmp/resque-clojure-redis.pid"
-             'daemonize "yes"
-             'port "6380"
-             'logfile "stdout"})
+(def ^:dynamic *config*
+  {'pidfile "/tmp/resque-clojure-redis.pid"
+   'daemonize "yes"
+   'port "6380"
+   'logfile "stdout"})
 
 (defn start-redis []
-  (let [conf (string/join "\n" (map #(str (first %) " " (last %)) config))]
+  (let [conf (string/join "\n" (map #(str (first %) " " (last %)) *config*))]
     (sh "redis-server" "-" :in conf)
     ; wait for redis to start
     (Thread/sleep 200)))
 
 (defn stop-redis []
-  (sh "redis-cli" "-p" (config 'port) "shutdown"))
+  (sh "redis-cli" "-p" (*config* 'port) "shutdown"))
 
 (defn config-redis []
-  (core/configure {:port (Integer/parseInt (config 'port)) :host "localhost" :max-workers 1}))
+  (core/configure {:port (Integer/parseInt (*config* 'port)) :host "localhost" :max-workers 1}))
 
 (defn redis-test-instance [tests]
   (start-redis)
@@ -27,6 +28,10 @@
   (try
     (tests)
     (finally (stop-redis))))
+
+(defn redis-test-instance-with-config [config]
+  (binding [*config* (merge *config* config)]
+    redis-test-instance))
 
 (defn cleanup-redis-keys [tests]
   (redis/flushdb)

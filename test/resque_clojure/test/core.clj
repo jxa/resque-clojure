@@ -10,6 +10,8 @@
               :max-shutdown-wait 5000
               :poll-interval 1000
               :max-workers 4
-              :bogus 'badkey})
-  (is (= {:host "clojure.org" :port 9999} @redis/config))
+              :bogus 'badkey
+              :timeout 999
+              :password "fungi"})
+  (is (= {:host "clojure.org" :port 9999 :timeout 999 :password "fungi"} @redis/config))
   (is (= {:max-shutdown-wait 5000 :poll-interval 1000 :max-workers 4} @super/config)))

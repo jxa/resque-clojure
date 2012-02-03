@@ -13,18 +13,18 @@
 (defn configure [c]
   (swap! config merge c))
 
+(defn- make-int [i]
+  (if (string? i) (Integer/parseInt i) i))
+
 (defn init-pool []
   (dosync
    (release-pool)
    (let [{:keys [host port timeout password]} @config
-         port (if (string? port) (Integer/parseInt port) port)
-         timeout (if (string? timeout) (Integer/parseInt timeout) timeout)
-         generic-object-pool-config (GenericObjectPool$Config.)]
-     (if (nil? timeout)
-       (ref-set pool (JedisPool. host port))
-       (if (nil? password)
-         (ref-set pool (JedisPool. generic-object-pool-config host port timeout))
-         (ref-set pool (JedisPool. generic-object-pool-config host port timeout password)))))))
+         port (make-int port)
+         timeout (make-int timeout)]
+     (if (nil? password)
+       (ref-set pool (JedisPool. (GenericObjectPool$Config.) host port timeout))
+       (ref-set pool (JedisPool. (GenericObjectPool$Config.) host port timeout password))))))
 
 (defn- get-connection []
   (.getResource @pool))
@@ -87,6 +87,3 @@
 
 (defcommand flushdb []
   (.flushDB redis))
-
-(defcommand auth [password]
-  (.auth redis password))
