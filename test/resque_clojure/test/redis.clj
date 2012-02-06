@@ -5,7 +5,7 @@
         [resque-clojure.util :only [includes?]]))
 
 (def test-key "resque-clojure-test")
-(use-fixtures :once helper/redis-test-instance)
+(use-fixtures :once (helper/redis-test-instance-with-config {}))
 (use-fixtures :each helper/cleanup-redis-keys)
 
 (deftest set-and-get
@@ -16,7 +16,7 @@
   (redis/rpush test-key "value")
   (is (= "value" (redis/lpop test-key)))
   (is (= nil (redis/lpop test-key))))
-  
+
 (deftest list-ops-llen
   (is (= 0 (redis/llen test-key)))
   (redis/rpush test-key "value")
@@ -62,3 +62,11 @@
   (redis/set test-key "asdf")
   (redis/flushdb)
   (is (empty? (redis/keys "*"))))
+
+(use-fixtures :once (helper/redis-test-instance-with-config {:requirepass "sekrit"}))
+
+(deftest connecting-with-password
+  (redis/configure {:password "sekrit"})
+  (redis/init-pool)
+  (redis/flushdb)
+  (is (empty? (redis/keys "*")) "running any redis command here without blowing up validates password connection"))
