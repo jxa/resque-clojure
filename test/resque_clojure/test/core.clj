@@ -13,5 +13,10 @@
               :bogus 'badkey
               :timeout 999
               :password "fungi"})
-  (is (= {:host "clojure.org" :port 9999 :timeout 999 :password "fungi"} @redis/config))
+  (is (= {:host "clojure.org" :port 9999 :timeout 999 :password "fungi" :namespace nil} @redis/config))
   (is (= {:max-shutdown-wait 5000 :poll-interval 1000 :max-workers 4} @super/config)))
+
+(deftest configuration-sets-namespace
+  (configure {:namespace "staging"})
+  (is (= "staging" (:namespace @redis/config)))
+  (configure {:namespace nil}))

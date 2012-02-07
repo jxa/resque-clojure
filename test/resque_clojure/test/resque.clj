@@ -41,3 +41,10 @@
     (is (re-find #"^clojure.lang.Numbers.divide" (first (:backtrace formatted))))
     (is (= "hostname:pid:queue" (:worker formatted)))
     (is (= "test-queue" (:queue formatted)))))
+
+(deftest namespace-affects-keys
+  (redis/configure {:namespace "staging"})
+  (is (= "staging" (:namespace @redis/config)))
+  (is (= "staging:key" (-namespace-key "key")))
+  (is (= "staging:queue:test" (-full-queue-name "test")))
+  (redis/configure {:namespace nil}))

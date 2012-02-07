@@ -11,6 +11,7 @@
      :port
      :timeout
      :password
+     :namespace
      :max-shutdown-wait
      :poll-interval
      :max-workers"

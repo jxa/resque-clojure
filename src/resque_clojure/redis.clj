@@ -4,7 +4,7 @@
            [redis.clients.jedis.exceptions JedisException]
            [org.apache.commons.pool.impl GenericObjectPool$Config]))
 
-(def config (atom {:host "localhost" :port 6379 :timeout 2000 :password nil}))
+(def config (atom {:host "localhost" :port 6379 :timeout 2000 :password nil :namespace nil}))
 (def pool (ref nil))
 (def ^:dynamic redis)
 

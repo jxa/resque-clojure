@@ -53,7 +53,7 @@
 ;;
 
 (defn -namespace-key [key]
-  (str "resque:" key))
+  (str (or (:namespace @redis/config) "resque") ":" key))
 
 (defn -full-queue-name [name]
   (-namespace-key (str "queue:" name)))
