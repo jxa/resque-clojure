@@ -12,7 +12,7 @@
 (deftest test-namespace-key
   (is (= "resque:key" (-namespace-key "key"))))
 
-(deftest test-full-queue-name 
+(deftest test-full-queue-name
   (is (= "resque:queue:test" (-full-queue-name "test"))))
 
 (deftest test-enqueue-dequeue
@@ -41,3 +41,10 @@
     (is (re-find #"^clojure.lang.Numbers.divide" (first (:backtrace formatted))))
     (is (= "hostname:pid:queue" (:worker formatted)))
     (is (= "test-queue" (:queue formatted)))))
+
+(deftest namespace-affects-keys
+  (configure {:namespace "staging"})
+  (is (= "staging" (:namespace @config)))
+  (is (= "staging:key" (-namespace-key "key")))
+  (is (= "staging:queue:test" (-full-queue-name "test")))
+  (configure {:namespace "resque"}))

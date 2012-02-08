@@ -14,6 +14,11 @@
 ;; public api
 ;;
 
+(def config (atom {:namespace "resque"}))
+
+(defn configure [c]
+  (swap! config merge c))
+
 (defn enqueue [queue worker-name & args]
   (redis/sadd (-namespace-key "queues") queue)
   (redis/rpush (-full-queue-name queue)
@@ -53,7 +58,7 @@
 ;;
 
 (defn -namespace-key [key]
-  (str "resque:" key))
+  (str (:namespace @config) ":" key))
 
 (defn -full-queue-name [name]
   (-namespace-key (str "queue:" name)))
