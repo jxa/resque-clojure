@@ -12,7 +12,7 @@
 (deftest test-namespace-key
   (is (= "resque:key" (-namespace-key "key"))))
 
-(deftest test-full-queue-name 
+(deftest test-full-queue-name
   (is (= "resque:queue:test" (-full-queue-name "test"))))
 
 (deftest test-enqueue-dequeue
@@ -43,8 +43,8 @@
     (is (= "test-queue" (:queue formatted)))))
 
 (deftest namespace-affects-keys
-  (redis/configure {:namespace "staging"})
-  (is (= "staging" (:namespace @redis/config)))
+  (configure {:namespace "staging"})
+  (is (= "staging" (:namespace @config)))
   (is (= "staging:key" (-namespace-key "key")))
   (is (= "staging:queue:test" (-full-queue-name "test")))
-  (redis/configure {:namespace nil}))
+  (configure {:namespace "resque"}))

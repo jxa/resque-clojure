@@ -16,10 +16,13 @@
      :poll-interval
      :max-workers"
   (let [redis-keys (keys @redis/config)
+        resque-keys (keys @resque/config)
         super-keys (keys @supervisor/config)
         redis-map (filter-map c redis-keys)
+        resque-map (filter-map c resque-keys)
         super-map (filter-map c super-keys)]
     (redis/configure redis-map)
+    (resque/configure resque-map)
     (supervisor/configure super-map)))
 
 
