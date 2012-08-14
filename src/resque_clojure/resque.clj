@@ -68,11 +68,11 @@
         stacktrace (map #(.toString %) (.getStackTrace exception))
         exception-class (-> exception (.getClass) (.getName))]
     {:failed_at (format "%1$tY/%1$tm/%1$td %1$tk:%1$tM:%1$tS" (Date.))
-     :payload (:job result)
+     :payload (select-keys result [:job :class :args])
      :exception exception-class
      :error (or (.getMessage exception) "(null)")
      :backtrace stacktrace
-     :worker "hostname:pid:queue"
+     :worker (apply str (interpose ":" (reverse (.split (.getName (java.lang.management.ManagementFactory/getRuntimeMXBean)) "@"))))
      :queue (:queue result)}))
 
 (defn -dequeue-randomized [queues]

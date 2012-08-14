@@ -11,7 +11,7 @@
     (apply (lookup-fn func) args)
     {:result :pass :job job :queue queue}
     (catch Exception e
-      {:result :error :exception e :job job :queue queue})))
+      {:result :error :exception e :job job :queue queue :class func :args args})))
 
 (defn name [queues]
   (let [pid-host (.getName (java.lang.management.ManagementFactory/getRuntimeMXBean))
