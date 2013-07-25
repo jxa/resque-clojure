@@ -26,7 +26,8 @@
 (defn stop []
   "stops polling queues. waits for all workers to complete current job"
   (dosync (ref-set run-loop? false))
-  (apply await-for (:max-shutdown-wait @config) @working-agents))
+  (apply await-for (:max-shutdown-wait @config) @working-agents)
+  (resque/unregister @watched-queues))
 
 (defn worker-complete [key ref old-state new-state]
   (release-worker ref)
