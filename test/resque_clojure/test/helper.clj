@@ -8,11 +8,11 @@
   {'pidfile "/tmp/resque-clojure-redis.pid"
    'daemonize "yes"
    'port "6380"
-   'logfile "stdout"})
+   'logfile "/tmp/resque-clojure-redis.log"})
 
 (defn start-redis []
-  (let [conf (string/join "\n" (map #(str (first %) " " (last %)) *config*))]
-    (sh "redis-server" "-" :in conf)
+  (let [conf (map (fn [[k v]] (str "--" k " " v)) *config*)]
+    (apply sh "redis-server" conf)
     ; wait for redis to start
     (Thread/sleep 200)))
 
@@ -20,7 +20,10 @@
   (sh "redis-cli" "-p" (*config* 'port) "shutdown"))
 
 (defn config-redis []
-  (core/configure {:port (Integer/parseInt (*config* 'port)) :host "localhost" :max-workers 1}))
+  (core/configure {:port (Integer/parseInt (*config* 'port))
+                   :host "localhost"
+                   :max-workers 1
+                   :password nil}))
 
 (defn redis-test-instance [tests]
   (start-redis)

@@ -4,7 +4,14 @@
            [redis.clients.jedis.exceptions JedisException]
            [org.apache.commons.pool.impl GenericObjectPool$Config]))
 
-(def config (atom {:host "localhost" :port 6379 :timeout 2000 :password nil}))
+(def config (atom
+             {:uri nil
+              :host "localhost"
+              :port 6379
+              :timeout 2000
+              :password nil
+              :database 0 }))
+
 (def pool (ref nil))
 (def ^:dynamic redis)
 
@@ -19,12 +26,16 @@
 (defn init-pool []
   (dosync
    (release-pool)
-   (let [{:keys [host port timeout password]} @config
-         port (make-int port)
-         timeout (make-int timeout)]
-     (if (nil? password)
-       (ref-set pool (JedisPool. (GenericObjectPool$Config.) host port timeout))
-       (ref-set pool (JedisPool. (GenericObjectPool$Config.) host port timeout password))))))
+   (let [{:keys [host port timeout password uri database]} @config]
+     (ref-set pool
+              (if uri
+                (let [uri (java.net.URI. uri)
+                      host (.getHost uri)
+                      port (.getPort uri)
+                      password (-> uri (.getUserInfo) (.split ":") (aget 1))]
+                  (JedisPool. (GenericObjectPool$Config.) host port timeout password database))
+                (JedisPool. (GenericObjectPool$Config.) host (make-int port)
+                            (make-int timeout) password database))))))
 
 (defn- get-connection []
   (.getResource @pool))
@@ -52,8 +63,8 @@
 (defcommand get [key]
   (.get redis key))
 
-(defcommand rpush [key value]
-  (.rpush redis key value))
+(defcommand rpush [key & values]
+  (.rpush redis key (into-array String values)))
 
 (defcommand lpop [key]
   (.lpop redis key))
@@ -70,20 +81,17 @@
 (defcommand smembers [key]
   (seq (.smembers redis key)))
 
-(defcommand sadd [key value]
-  (.sadd redis key value))
+(defcommand sadd [key & values]
+  (.sadd redis key (into-array String values)))
 
-(defcommand srem [key value]
-  (.srem redis key value))
+(defcommand srem [key & values]
+  (.srem redis key (into-array String values)))
 
 (defcommand keys [pattern]
   (seq (.keys redis pattern)))
 
-;; we could extend this to take multiple keys
-(defcommand del [key]
-  (let [args (make-array java.lang.String 1)]
-    (aset args 0 key)
-    (.del redis args)))
+(defcommand del [& keys]
+  (.del redis (into-array String keys)))
 
 (defcommand flushdb []
   (.flushDB redis))

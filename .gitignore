@@ -5,3 +5,5 @@ pom.xml
 .lein-failures
 .lein-deps-sum
 /target/stale/extract-native.dependencies
+/.lein-repl-history
+/target/repl-port
