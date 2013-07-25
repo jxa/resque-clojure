@@ -8,7 +8,7 @@ Resque-clojure is a clojure-based implementation of the same protocol. It aims t
 fully interoperable with the original project.
 
 ## Installation
-  [resque-clojure "0.2.2"]
+  [resque-clojure "0.3.0"]
 
 ## Usage
 
