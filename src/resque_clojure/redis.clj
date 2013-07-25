@@ -32,7 +32,8 @@
                 (let [uri (java.net.URI. uri)
                       host (.getHost uri)
                       port (.getPort uri)
-                      password (-> uri (.getUserInfo) (.split ":") (aget 1))]
+                      user (.getUserInfo uri)
+                      password (when user (-> user (.split ":") (aget 1)))]
                   (JedisPool. (GenericObjectPool$Config.) host port timeout password database))
                 (JedisPool. (GenericObjectPool$Config.) host (make-int port)
                             (make-int timeout) password database))))))
