@@ -16,18 +16,20 @@
 (defn configure [c]
   (swap! config merge c))
 
-(defn start [queues]
-  "start listening for jobs on queues (vector)."
-  (dotimes [n (:max-workers @config)] (make-agent))
-  (listen-to queues)
-  (dosync (ref-set run-loop? true))
-  (.start (Thread. listen-loop)))
-
 (defn stop []
   "stops polling queues. waits for all workers to complete current job"
   (dosync (ref-set run-loop? false))
   (apply await-for (:max-shutdown-wait @config) @working-agents)
   (resque/unregister @watched-queues))
+
+(defn start [queues]
+  "start listening for jobs on queues (vector)."
+  (dotimes [n (:max-workers @config)] (make-agent))
+  (listen-to queues)
+  (dosync (ref-set run-loop? true))
+  (.start (Thread. listen-loop))
+  (.addShutdownHook (Runtime/getRuntime)
+                    (Thread. stop)))
 
 (defn worker-complete [key ref old-state new-state]
   (release-worker ref)
@@ -58,7 +60,7 @@
 (defn reserve-worker []
   "either returns an idle worker or nil.
    marks the returned worker as working."
-  
+
   (dosync
    (let [selected (first @idle-agents)]
      (if selected
@@ -74,10 +76,3 @@
 (defn listen-to [queues]
   (resque/register queues)
   (swap! watched-queues into queues))
-
-;; Runtime.getRuntime().addShutdownHook(new Thread() {
-;;     public void run() { /*
-;;        my shutdown code here
-;;     */ }
-;;  });
-
