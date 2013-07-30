@@ -9,12 +9,15 @@
   "set configuration parameters. Available keys:
      :host
      :port
-     :timeout
      :password
+     :uri
+     :database
+     :timeout
      :namespace
      :max-shutdown-wait
      :poll-interval
-     :max-workers"
+     :max-workers
+     :error-handler"
   (let [redis-keys (keys @redis/config)
         resque-keys (keys @resque/config)
         super-keys (keys @supervisor/config)
