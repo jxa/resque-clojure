@@ -16,7 +16,7 @@
               :password "fungi"})
   (is (= {:host "clojure.org" :port 9999 :timeout 999
           :password "fungi" :database 0 :uri nil} @redis/config))
-  (is (= {:namespace "resque"} @resque/config))
+  (is (= {:namespace "resque" :error-handler nil} @resque/config))
   (is (= {:max-shutdown-wait 5000 :poll-interval 1000 :max-workers 4} @super/config)))
 
 (deftest configuration-sets-namespace

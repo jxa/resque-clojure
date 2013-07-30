@@ -39,7 +39,6 @@
     (is (= "java.lang.ArithmeticException" (:exception formatted)))
     (is (= "Divide by zero" (:error formatted)))
     (is (re-find #"^clojure.lang.Numbers.divide" (first (:backtrace formatted))))
-    (is (= "hostname:pid:queue" (:worker formatted)))
     (is (= "test-queue" (:queue formatted)))))
 
 (deftest namespace-affects-keys

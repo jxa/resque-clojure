@@ -14,7 +14,8 @@
 ;; public api
 ;;
 
-(def config (atom {:namespace "resque"}))
+(def config (atom {:namespace "resque"
+                   :error-handler nil}))
 
 (defn configure [c]
   (swap! config merge c))
@@ -33,7 +34,11 @@
         (assoc msg :func class :args args)))))
 
 (defn report-error [result]
-  (redis/rpush (-namespace-key "failed") (json/json-str (-format-error result))))
+  (let [error (-format-error result)
+        handle (:error-handler @config)]
+    (redis/rpush (-namespace-key "failed") (json/json-str error))
+    (when handle
+      (handle error))))
 
 (defn register [queues]
   (let [worker-name (worker/name queues)
